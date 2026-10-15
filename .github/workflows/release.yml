@@ -2,6 +2,7 @@ name: 发布新版本
 
 # 脚本里的 PANEL_VERSION 改成新版本号并推送到 main 后,自动创建对应的 Release,
 # 更新说明取自 CHANGELOG.md 里同版本号的那一节,并附上安装脚本。
+# 版本号没变时,只把附件里的脚本和说明同步成最新(修小问题不用发新版本)。
 on:
   push:
     branches: [main]
@@ -32,16 +33,14 @@ jobs:
           [ -n "$v" ] || { echo "脚本里没有找到 PANEL_VERSION"; exit 1; }
           echo "version=$v" >> "$GITHUB_OUTPUT"
           if gh release view "v$v" >/dev/null 2>&1; then
-            echo "v$v 已经发布过,跳过"
+            echo "v$v 已经发布过,只同步附件和说明"
             echo "exists=1" >> "$GITHUB_OUTPUT"
           else
             echo "exists=0" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: 发布
-        if: steps.ver.outputs.exists == '0'
+      - name: 提取更新说明
         env:
-          GH_TOKEN: ${{ github.token }}
           VER: ${{ steps.ver.outputs.version }}
         run: |
           awk -v v="$VER" '
@@ -49,8 +48,24 @@ jobs:
             /^## v/ && f { exit }
             f' CHANGELOG.md > notes.md
           [ -s notes.md ] || echo "版本 v$VER" > notes.md
+
+      - name: 发布新版本
+        if: steps.ver.outputs.exists == '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
           gh release create "v$VER" xray-traffic-panel.sh \
             --target "$GITHUB_SHA" \
             --title "v$VER · 数据流量分析面板" \
             --notes-file notes.md \
             --latest
+
+      - name: 同步已有版本(更新附件里的脚本和说明)
+        if: steps.ver.outputs.exists == '1'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VER: ${{ steps.ver.outputs.version }}
+        run: |
+          gh release upload "v$VER" xray-traffic-panel.sh --clobber
+          gh release edit "v$VER" --notes-file notes.md
