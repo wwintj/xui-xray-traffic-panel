@@ -33,7 +33,29 @@ bash <(curl -Ls https://raw.githubusercontent.com/wwintj/xui-xray-traffic-panel/
 
 装完后终端会显示访问地址。默认账号 / 密码都是 **`tim`**,登录后可以在网页里修改。
 
-> 再次运行同一条命令就是**升级**,会保留密码、端口、设置和全部历史数据。
+## 一键升级
+
+和安装是同一条命令,会保留密码、端口、设置和全部历史数据:
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/wwintj/xui-xray-traffic-panel/main/xray-traffic-panel.sh)
+```
+
+## 一键卸载
+
+卸载面板,**保留历史数据**(以后重新安装会自动沿用):
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/wwintj/xui-xray-traffic-panel/main/xray-traffic-panel.sh) uninstall
+```
+
+**彻底卸载**,连同全部历史数据、设置和 Telegram 配置一起删除(会要求输入 `yes` 确认,无法恢复):
+
+```bash
+bash <(curl -Ls https://raw.githubusercontent.com/wwintj/xui-xray-traffic-panel/main/xray-traffic-panel.sh) purge
+```
+
+> 卸载不会改动 x-ui 本身。Xray 访问日志和它的每日轮转设置会保留,不影响 x-ui 正常使用。
 
 ## 功能
 
@@ -107,6 +129,7 @@ bash <(curl -Ls https://raw.githubusercontent.com/wwintj/xui-xray-traffic-panel/
 | 指定端口 | `PORT=8443 bash xray-traffic-panel.sh` |
 | 关闭主动探测目标 IP 证书 | `IP_PROBE=0 bash xray-traffic-panel.sh` |
 | 卸载(保留数据) | `bash xray-traffic-panel.sh uninstall` |
+| 彻底卸载(删除全部数据) | `bash xray-traffic-panel.sh purge` |
 
 服务管理:
 

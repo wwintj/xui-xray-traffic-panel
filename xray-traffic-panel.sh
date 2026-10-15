@@ -12,7 +12,8 @@
 #   指定面板最多占用的空间(默认 10GB):       sudo STORAGE_MAX_GB=10 bash xray-traffic-panel.sh
 #   重置密码 / 指定端口:                       sudo ADMIN_PASS=新密码 PORT=8443 bash xray-traffic-panel.sh
 #   关闭主动探测目标 IP 证书(隐私考虑):       sudo IP_PROBE=0 bash xray-traffic-panel.sh
-#   卸载:                                      sudo bash xray-traffic-panel.sh uninstall
+#   卸载(保留历史数据,重装可沿用):            sudo bash xray-traffic-panel.sh uninstall
+#   彻底卸载(连同全部数据一起删除):            sudo bash xray-traffic-panel.sh purge
 set -euo pipefail
 
 PANEL_VERSION="1.0.0"
@@ -24,12 +25,24 @@ XUI_DB="${XUI_DB:-/etc/x-ui/x-ui.db}"
 
 [ "$(id -u)" -eq 0 ] || { echo "请用 root 运行: sudo bash $0"; exit 1; }
 
-if [ "${1:-}" = "uninstall" ]; then
+if [ "${1:-}" = "uninstall" ] || [ "${1:-}" = "purge" ]; then
+  if [ "${1:-}" = "purge" ] && { [ -t 0 ] || { [ -r /dev/tty ] && (: </dev/tty) 2>/dev/null; }; }; then
+    echo "将彻底删除面板及全部历史数据(连接 IP、访问记录、设置、Telegram 配置),无法恢复。"
+    read -r -p "确认请输入 yes: " ANS </dev/tty || true
+    [ "$ANS" = "yes" ] || { echo "已取消。"; exit 0; }
+  fi
   systemctl disable --now "$SVC" 2>/dev/null || true
   rm -f "/etc/systemd/system/$SVC.service" "$ENV_FILE"
   systemctl daemon-reload
   rm -rf "$APP_DIR/venv" "$APP_DIR/app.py" "$APP_DIR/requirements.txt"
-  echo "已卸载。历史数据保留在 $APP_DIR/data (不需要可手动删除)。"
+  if [ "${1:-}" = "purge" ]; then
+    rm -rf "$APP_DIR"
+    echo "已彻底卸载,面板程序和全部数据都已删除。"
+  else
+    echo "已卸载。历史数据保留在 $APP_DIR/data,以后重新安装会自动沿用;"
+    echo "不需要的话可以运行 purge 彻底删除:bash xray-traffic-panel.sh purge"
+  fi
+  echo "(Xray 访问日志和它的每日轮转设置仍保留,不影响 x-ui 正常使用。)"
   exit 0
 fi
 
@@ -5417,5 +5430,6 @@ echo "  * 如果上面提示没能自动开启日志,请在 x-ui 面板 → Xray
 echo "    给配置模板加上: \"log\": { \"access\": \"$LOG\", \"loglevel\": \"warning\" },"
 echo "    保存并重启 x-ui。"
 echo "  * 面板最多占用 ${STORAGE_MAX_GB} GB(数据库 + 访问日志),超过会自动清理最旧的数据"
-echo "  * 卸载: sudo bash xray-traffic-panel.sh uninstall"
+echo "  * 升级: 重新运行一次本脚本(或 README 里的一键命令),数据和设置都会保留"
+echo "  * 卸载: bash xray-traffic-panel.sh uninstall(保留数据)  /  purge(连数据一起删除)"
 echo "======================================"
