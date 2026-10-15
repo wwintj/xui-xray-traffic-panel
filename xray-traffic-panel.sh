@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 数据流量分析面板 v1.0.0(配合 x-ui / 3x-ui 的 Xray 节点连接 IP 与访问网站分析)- 一键安装 / 升级脚本(Ubuntu / Debian,需要 root)
+# 数据流量分析面板 v1.0.1(配合 x-ui / 3x-ui 的 Xray 节点连接 IP 与访问网站分析)- 一键安装 / 升级脚本(Ubuntu / Debian,需要 root)
 # 项目地址: https://github.com/wwintj/xui-xray-traffic-panel
 #
 #   安装或升级(保留原密码、端口和历史数据):   sudo bash xray-traffic-panel.sh      (运行时会询问 VPS 绑定的域名)
@@ -16,7 +16,7 @@
 #   彻底卸载(连同全部数据一起删除):            sudo bash xray-traffic-panel.sh purge
 set -euo pipefail
 
-PANEL_VERSION="1.0.0"
+PANEL_VERSION="1.0.1"
 APP_DIR=/opt/xray-ip-viewer
 SVC=xray-ip-viewer
 ENV_FILE=/etc/xray-ip-viewer.env
@@ -4900,7 +4900,8 @@ def tg_worker():
             live = live_map()
             msgs = []
             # --- 上线 / 下线 / 疑似共享
-            for port in set(names) | set(live):
+            # 只看 x-ui 里的节点端口;服务器自己向外连网站用的临时端口、面板端口等都不算
+            for port in _node_ports(names):
                 ips = live.get(port, {})
                 st = state.get(port)
                 if st is None:
